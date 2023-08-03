@@ -1,30 +1,54 @@
 // Initialize the JS client
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '../interface/supabase.types';
 import dotenv from 'dotenv';
-import { Response, Request } from 'express';
 
 dotenv.config();
+let supabase_url = process.env.SUPABASE_PROJECT_URL!;
+let supabase_key = process.env.SUPABASE_PUBLIC_ANON!;
 
-const supabase = createClient<Database>(
-  process.env.SUPABASE_PROJECT_URL as string,
-  process.env.SUPABASE_PUBLIC_ANON as string
-  // process.env.SUPABASE_SERVICE_KEY as string
+let tokenJa: string = ' ';
+
+let supabase = createClient<Database>(
+  supabase_url,
+  supabase_key,
+  {
+    global: {
+      headers: {
+        Authorization: `Bearer ${tokenJa}`
+      }
+    }
+  }
 );
 
-export const getAllTodos = async (req: Request, res: Response) => {
-  try {
-
-    let { data, error } = await supabase
-      .from('todos')
-      .select('*');
-
-    console.log("getAllTodos", data);
-    return res.send(data);
-  } catch (error) {
-    res.send(500);
+const getSupabaseWithToken = async () => {
+  let supabase;
+  if (tokenJa) {
+    supabase = createClient<Database>(
+      supabase_url,
+      supabase_key,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${tokenJa}`
+          }
+        }
+      }
+    );
+  } else {
+    supabase = createClient<Database>(
+      supabase_url,
+      supabase_key
+    );
   }
+
+  return supabase;
 };
 
+const setToken = (newToken: string) => {
+  tokenJa = newToken;
+};
 
-// export default supabase;
+export { getSupabaseWithToken, supabase, setToken, tokenJa }
+
+

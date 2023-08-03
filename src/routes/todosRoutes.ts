@@ -1,6 +1,6 @@
 import express, { Application, Request, Response } from 'express';
-// import { getAllTodos } from '../controller/todos.controller';
-import { getAllTodos } from '../utils/supabase';
+import { getAllTodos } from '../controller/todos.controller';
+// import { getAllTodos } from '../utils/supabase';
 const router = express.Router();
 
 router.route('/').get(getAllTodos);
