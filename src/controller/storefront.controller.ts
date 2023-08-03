@@ -1,26 +1,91 @@
 import { Response, Request } from "express";
 import { supabase, tokenJa, getSupabaseWithToken } from "../utils/supabase";
 
-interface CustomError {
-  code: string | null;
-  details: null | any;
-  hint: string | null;
-  message: string | null;
+interface TitleItem {
+  title: string;
+  category: string;
 }
+
+interface StorefrontItem extends TitleItem {
+  id: number;
+  date: string;
+  createdAt: string;
+  qty: number;
+  unit: string;
+  remark: string;
+  totalPrice: number;
+  isLeftover: boolean;
+  leftoverAmount: number;
+  leftoverTotalPrice: number;
+}
+
+interface LeftoverItem extends TitleItem {
+  storefrontId: number;
+  leftoverAmount: number;
+  leftoverTotalPrice: number;
+}
+
+interface IncomeItem extends TitleItem {
+  storefrontId: number;
+  incomeAmount: number;
+  incomeTotalPrice: number;
+}
+const convertSnakeCaseToCamelCase = (arr: any[]): any[] => {
+  return arr.map((obj) => {
+    const camelCaseObj: any = {};
+    for (const snakeCaseKey in obj) {
+      if (snakeCaseKey.includes("_")) {
+        const camelCaseKey = snakeCaseKey.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+        camelCaseObj[camelCaseKey] = obj[snakeCaseKey];
+      } else {
+        camelCaseObj[snakeCaseKey] = obj[snakeCaseKey];
+      }
+    }
+    return camelCaseObj;
+  });
+};
 
 export const getStorefrontByDate = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
   const date: string = req.params.date;
   const convertedDate = new Date(date).toISOString();
   try {
-    let { data: storefront, error } = await supabase
+    let { data: responseData, error } = await supabase
       .from('storefront')
       .select("*")
       .eq("date", convertedDate);
     if (error) throw error;
+    const convertResponseData = convertSnakeCaseToCamelCase(responseData || []);
+    let storefrontData: StorefrontItem[] = convertResponseData;
+    let leftoverData: LeftoverItem[] = [];
+    let incomeData: IncomeItem[] = [];
+
+    convertResponseData?.forEach((sfItem: StorefrontItem) => {
+      let incomeItem: IncomeItem;
+      const { id: storefrontId, title, category, qty, totalPrice, isLeftover, leftoverAmount, leftoverTotalPrice } = sfItem;
+      // storefrontData.push(sfItem)
+      if (isLeftover) {
+        leftoverData.push({
+          storefrontId, title, category, leftoverAmount, leftoverTotalPrice,
+        }); leftoverTotalPrice;
+      }
+      incomeItem = {
+        storefrontId,
+        title,
+        category,
+        incomeAmount: 0,
+        incomeTotalPrice: 0
+      };
+      incomeData.push(incomeItem);
+
+    });
     res.json({
       message: "GET DATA SUCCESSFULLY",
-      data: storefront
+      data: {
+        storefrontData,
+        leftoverData,
+        incomeData,
+      }
     });
   } catch (error: any) {
     res.status(500).json({
