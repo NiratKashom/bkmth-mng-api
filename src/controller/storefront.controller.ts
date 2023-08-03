@@ -1,7 +1,12 @@
 import { Response, Request } from "express";
 import { supabase, tokenJa, getSupabaseWithToken } from "../utils/supabase";
 
-
+interface CustomError {
+  code: string | null;
+  details: null | any;
+  hint: string | null;
+  message: string | null;
+}
 
 export const getStorefrontByDate = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
@@ -9,27 +14,77 @@ export const getStorefrontByDate = async (req: Request, res: Response) => {
   const convertedDate = new Date(date).toISOString();
   try {
     let { data: storefront, error } = await supabase
-    .from('storefront')
-    .select("*")
-    .eq("date", convertedDate);
-  res.json({
-    message: "get data success",
-    data: storefront
-  });
-  } catch (error) {
-    res.send(500).json({message: error});
+      .from('storefront')
+      .select("*")
+      .eq("date", convertedDate);
+    if (error) throw error;
+    res.json({
+      message: "GET DATA SUCCESSFULLY",
+      data: storefront
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      message: error.message,
+      error
+    });
   }
 };
 
 export const createStorefrontData = async (req: Request, res: Response) => {
   const body: string = req.body;
-  const response = await supabase
-    .from('storefront')
-    .insert(body)
-    .select();
-  console.log(response);
-  res.json({ message: response.data });
+  try {
+    const response = await supabase
+      .from('storefront')
+      .insert(body)
+      .select();
+    if (response.status === 400 || response.status === 404) throw response;
+    res.json({
+      message: "CREAT DATA SUCCESSFULLY",
+      data: response.data
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      statusText: error.statusText,
+      message: error.error.message,
+      error
+    });
+  }
 };
+
+export const deleteStorefrontData = async (req: Request, res: Response) => {
+  const id: string = req.params.id;
+  try {
+    const response = await supabase
+      .from('storefront')
+      .delete()
+      .eq('id', id);
+    if (response.status === 400 || response.status === 404) throw response;
+    res.json({
+      message: "DETELED DATA SUCCESSFULLY",
+      response
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      statusText: error.statusText,
+      message: error.error.message,
+      error
+    });
+  }
+};
+
+// PUT method
+// export const handlePutRequest = async (req: Request, res: Response) => {
+//   try {
+//     // Your logic to handle PUT request goes here
+//     const id = req.params.id;
+//     const updatedData = req.body;
+//     await updateData(id, updatedData);
+//     res.json({ message: 'Data updated successfully' });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
 
 // const MOCK_POST = [{
 //   category: "ขนมถ้วยฟู",
