@@ -1,27 +1,132 @@
 import { Response, Request } from "express";
-import { supabase, tokenJa, getSupabaseWithToken } from "../utils/supabase";
+import { supabase } from "../utils/supabase";
+import { convertCamelCaseToSnakeCase, convertSnakeCaseToCamelCase } from "../service/convertDataService";
 
-interface CustomError {
-  code: string | null;
-  details: null | any;
-  hint: string | null;
-  message: string | null;
+
+interface TitleItem {
+  title: string;
+  category: string;
+  unit: string;
 }
+
+interface StorefrontItem extends TitleItem {
+  id: number;
+  date: string;
+  createdAt: string;
+  qty: number;
+  remark: string;
+  totalPrice: number;
+  isLeftover: boolean;
+  leftoverAmount: number;
+  leftoverTotalPrice: number;
+}
+
+interface LeftoverItem extends TitleItem {
+  storefrontId: number;
+  leftoverAmount: number;
+  leftoverTotalPrice: number;
+}
+
+interface IncomeItem extends TitleItem {
+  storefrontId: number;
+  incomeAmount: number;
+  incomeTotalPrice: number;
+}
+
+interface Summary<T> {
+  amountItems: string;
+  sumTotalPrice: string;
+  data: T[];
+}
+
+type SummarySf = Summary<StorefrontItem>;
+type SummaryLo = Summary<LeftoverItem>;
+type SummaryIc = Summary<IncomeItem>;
 
 export const getStorefrontByDate = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
   const date: string = req.params.date;
-  const convertedDate = new Date(date).toISOString();
   try {
-    let { data: storefront, error } = await supabase
+    const convertedDate = new Date(date).toISOString();
+    let { data: responseData, error } = await supabase
       .from('storefront')
       .select("*")
       .eq("date", convertedDate);
     if (error) throw error;
+
+    const storefrontList = convertSnakeCaseToCamelCase(responseData || []);
+    let leftoverList: LeftoverItem[] = [];
+    let incomeList: IncomeItem[] = [];
+    let sfAmountItems: number = 0;
+    let loAmountItems: number = 0;
+    let icAmountItems: number = 0;
+    let sfTotalPrice: number = 0;
+    let loTotalPrice: number = 0;
+    let icTotalPrice: number = 0;
+
+    storefrontList?.forEach(({
+      id: storefrontId,
+      title,
+      category,
+      qty,
+      totalPrice,
+      isLeftover,
+      unit,
+      leftoverAmount,
+      leftoverTotalPrice
+    }: StorefrontItem) => {
+      sfAmountItems++;
+      sfTotalPrice += totalPrice;
+      if (isLeftover) {
+        loAmountItems++;
+        loTotalPrice += leftoverTotalPrice;
+        leftoverList.push({
+          storefrontId,
+          title,
+          category,
+          unit,
+          leftoverAmount,
+          leftoverTotalPrice,
+        });
+      }
+      let incomeItem: IncomeItem = {
+        storefrontId,
+        title,
+        unit,
+        category,
+        incomeAmount: qty - leftoverAmount,
+        incomeTotalPrice: totalPrice - leftoverTotalPrice
+      };
+      icAmountItems++;
+      icTotalPrice += incomeItem.incomeTotalPrice;
+      incomeList.push(incomeItem);
+
+    });
+    const storefrontData: SummarySf = {
+      amountItems: sfAmountItems.toLocaleString(),
+      sumTotalPrice: sfTotalPrice.toLocaleString(),
+      data: storefrontList,
+    };
+    const leftoverData: SummaryLo = {
+      amountItems: loAmountItems.toLocaleString(),
+      sumTotalPrice: loTotalPrice.toLocaleString(),
+      data: leftoverList,
+    };
+    const incomeData: SummaryIc = {
+      amountItems: icAmountItems.toLocaleString(),
+      sumTotalPrice: icTotalPrice.toLocaleString(),
+      data: incomeList,
+    };
+
     res.json({
       message: "GET DATA SUCCESSFULLY",
-      data: storefront
+      data: {
+        storefrontData,
+        leftoverData,
+        incomeData,
+      }
     });
+
   } catch (error: any) {
     res.status(500).json({
       message: error.message,
@@ -31,11 +136,12 @@ export const getStorefrontByDate = async (req: Request, res: Response) => {
 };
 
 export const createStorefrontData = async (req: Request, res: Response) => {
-  const body: string = req.body;
+  const body = req.body;
+  const convertedBody = convertCamelCaseToSnakeCase(body);
   try {
     const response = await supabase
       .from('storefront')
-      .insert(body)
+      .insert(convertedBody)
       .select();
     if (response.status === 400 || response.status === 404) throw response;
     res.json({
@@ -53,6 +159,10 @@ export const createStorefrontData = async (req: Request, res: Response) => {
 
 export const deleteStorefrontData = async (req: Request, res: Response) => {
   const id: string = req.params.id;
+  // res.json({
+  //   message: "DETELED DATA SUCCESSFULLY",
+  //   id
+  // });
   try {
     const response = await supabase
       .from('storefront')
