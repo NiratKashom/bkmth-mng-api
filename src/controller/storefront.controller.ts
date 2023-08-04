@@ -1,5 +1,7 @@
 import { Response, Request } from "express";
-import { supabase, tokenJa, getSupabaseWithToken } from "../utils/supabase";
+import { supabase } from "../utils/supabase";
+import { convertCamelCaseToSnakeCase, convertSnakeCaseToCamelCase } from "../service/convertDataService";
+
 
 interface TitleItem {
   title: string;
@@ -40,43 +42,6 @@ interface Summary<T> {
 type SummarySf = Summary<StorefrontItem>;
 type SummaryLo = Summary<LeftoverItem>;
 type SummaryIc = Summary<IncomeItem>;
-
-
-const convertSnakeCaseToCamelCase = (arr: any[]): any[] => {
-  return arr.map((obj) => {
-    const camelCaseObj: any = {};
-    for (const snakeCaseKey in obj) {
-      if (snakeCaseKey.includes("_")) {
-        const camelCaseKey = snakeCaseKey.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-        camelCaseObj[camelCaseKey] = obj[snakeCaseKey];
-      } else {
-        camelCaseObj[snakeCaseKey] = obj[snakeCaseKey];
-      }
-    }
-    return camelCaseObj;
-  });
-};
-
-function convertCamelCaseToSnakeCase(obj: any): any {
-  if (Array.isArray(obj)) {
-    return obj.map((item) => convertCamelCaseToSnakeCase(item));
-  }
-
-  if (typeof obj === 'object' && obj !== null) {
-    const convertedObj: any = {};
-
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        const snakeCaseKey = key.replace(/[A-Z]/g, (match) => `_${match.toLowerCase()}`);
-        convertedObj[snakeCaseKey] = convertCamelCaseToSnakeCase(obj[key]);
-      }
-    }
-
-    return convertedObj;
-  }
-
-  return obj;
-}
 
 export const getStorefrontByDate = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
@@ -171,7 +136,7 @@ export const getStorefrontByDate = async (req: Request, res: Response) => {
 };
 
 export const createStorefrontData = async (req: Request, res: Response) => {
-  const body: string = req.body;
+  const body = req.body;
   const convertedBody = convertCamelCaseToSnakeCase(body);
   try {
     const response = await supabase
@@ -194,6 +159,10 @@ export const createStorefrontData = async (req: Request, res: Response) => {
 
 export const deleteStorefrontData = async (req: Request, res: Response) => {
   const id: string = req.params.id;
+  // res.json({
+  //   message: "DETELED DATA SUCCESSFULLY",
+  //   id
+  // });
   try {
     const response = await supabase
       .from('storefront')
