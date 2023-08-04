@@ -4,6 +4,7 @@ import { supabase, tokenJa, getSupabaseWithToken } from "../utils/supabase";
 interface TitleItem {
   title: string;
   category: string;
+  unit: string;
 }
 
 interface StorefrontItem extends TitleItem {
@@ -11,7 +12,6 @@ interface StorefrontItem extends TitleItem {
   date: string;
   createdAt: string;
   qty: number;
-  unit: string;
   remark: string;
   totalPrice: number;
   isLeftover: boolean;
@@ -57,6 +57,27 @@ const convertSnakeCaseToCamelCase = (arr: any[]): any[] => {
   });
 };
 
+function convertCamelCaseToSnakeCase(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map((item) => convertCamelCaseToSnakeCase(item));
+  }
+
+  if (typeof obj === 'object' && obj !== null) {
+    const convertedObj: any = {};
+
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const snakeCaseKey = key.replace(/[A-Z]/g, (match) => `_${match.toLowerCase()}`);
+        convertedObj[snakeCaseKey] = convertCamelCaseToSnakeCase(obj[key]);
+      }
+    }
+
+    return convertedObj;
+  }
+
+  return obj;
+}
+
 export const getStorefrontByDate = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
   const date: string = req.params.date;
@@ -85,6 +106,7 @@ export const getStorefrontByDate = async (req: Request, res: Response) => {
       qty,
       totalPrice,
       isLeftover,
+      unit,
       leftoverAmount,
       leftoverTotalPrice
     }: StorefrontItem) => {
@@ -97,6 +119,7 @@ export const getStorefrontByDate = async (req: Request, res: Response) => {
           storefrontId,
           title,
           category,
+          unit,
           leftoverAmount,
           leftoverTotalPrice,
         });
@@ -104,6 +127,7 @@ export const getStorefrontByDate = async (req: Request, res: Response) => {
       let incomeItem: IncomeItem = {
         storefrontId,
         title,
+        unit,
         category,
         incomeAmount: qty - leftoverAmount,
         incomeTotalPrice: totalPrice - leftoverTotalPrice
@@ -148,10 +172,11 @@ export const getStorefrontByDate = async (req: Request, res: Response) => {
 
 export const createStorefrontData = async (req: Request, res: Response) => {
   const body: string = req.body;
+  const convertedBody = convertCamelCaseToSnakeCase(body);
   try {
     const response = await supabase
       .from('storefront')
-      .insert(body)
+      .insert(convertedBody)
       .select();
     if (response.status === 400 || response.status === 404) throw response;
     res.json({
