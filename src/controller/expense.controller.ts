@@ -1,5 +1,5 @@
 import { Response, Request } from "express";
-import { supabase } from "../utils/supabase";
+import { supabase, getSupabaseWithToken } from "../utils/supabase";
 import { convertCamelCaseToSnakeCase, convertSnakeCaseToCamelCase } from "../service/convertDataService";
 
 interface TitleItem {
@@ -26,6 +26,8 @@ interface SummaryExpense {
 
 export const getExpenseByDate = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
+  const token: string  = req.headers.authorization?.split(" ")[1] || "";
+  const supabase = await getSupabaseWithToken(token);
   const date: string = req.params.date;
   try {
     const convertedDate = new Date(date).toISOString();

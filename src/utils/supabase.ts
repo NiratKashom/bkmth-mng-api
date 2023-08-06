@@ -21,16 +21,16 @@ let supabase = createClient<Database>(
   }
 );
 
-const getSupabaseWithToken = async () => {
+const getSupabaseWithToken = async (token: string) => {
   let supabase;
-  if (tokenJa) {
+  if (token) {
     supabase = createClient<Database>(
       supabase_url,
       supabase_key,
       {
         global: {
           headers: {
-            Authorization: `Bearer ${tokenJa}`
+            Authorization: `Bearer ${token}`
           }
         }
       }
