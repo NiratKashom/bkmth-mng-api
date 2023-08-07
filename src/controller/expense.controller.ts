@@ -1,5 +1,4 @@
 import { Response, Request } from "express";
-import { supabase, getSupabaseWithToken } from "../utils/supabase";
 import { convertCamelCaseToSnakeCase, convertSnakeCaseToCamelCase } from "../service/convertDataService";
 
 interface TitleItem {
@@ -26,8 +25,7 @@ interface SummaryExpense {
 
 export const getExpenseByDate = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
-  const token: string  = req.headers.authorization?.split(" ")[1] || "";
-  const supabase = await getSupabaseWithToken(token);
+  const supabase = req.supabase!;
   const date: string = req.params.date;
   try {
     const convertedDate = new Date(date).toISOString();
@@ -46,7 +44,7 @@ export const getExpenseByDate = async (req: Request, res: Response) => {
       amountItems,
       sumTotalPrice,
       data: expenseList
-    }
+    };
 
     res.json({
       message: "GET DATA SUCCESSFULLY",
@@ -62,6 +60,7 @@ export const getExpenseByDate = async (req: Request, res: Response) => {
 };
 
 export const createExpenseData = async (req: Request, res: Response) => {
+  const supabase = req.supabase!;
   const body: ExpenseItem[] = req.body;
   const convertedBody = convertCamelCaseToSnakeCase(body);
   try {
@@ -85,6 +84,7 @@ export const createExpenseData = async (req: Request, res: Response) => {
 };
 
 export const deleteExpenseData = async (req: Request, res: Response) => {
+  const supabase = req.supabase!;
   const id: string = req.params.id;
   try {
     const response = await supabase

@@ -1,5 +1,4 @@
 import { Response, Request } from "express";
-import { supabase } from "../utils/supabase";
 import { convertCamelCaseToSnakeCase, convertSnakeCaseToCamelCase } from "../service/convertDataService";
 
 
@@ -45,6 +44,7 @@ type SummaryIc = Summary<IncomeItem>;
 
 export const getStorefrontByDate = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
+  const supabase = req.supabase!;
   const date: string = req.params.date;
   try {
     const convertedDate = new Date(date).toISOString();
@@ -136,6 +136,7 @@ export const getStorefrontByDate = async (req: Request, res: Response) => {
 };
 
 export const createStorefrontData = async (req: Request, res: Response) => {
+  const supabase = req.supabase!;
   const body = req.body;
   const convertedBody = convertCamelCaseToSnakeCase(body);
   try {
@@ -158,6 +159,7 @@ export const createStorefrontData = async (req: Request, res: Response) => {
 };
 
 export const deleteStorefrontData = async (req: Request, res: Response) => {
+  const supabase = req.supabase!;
   const id: string = req.params.id;
   // res.json({
   //   message: "DETELED DATA SUCCESSFULLY",
