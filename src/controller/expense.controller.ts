@@ -1,27 +1,6 @@
 import { Response, Request } from "express";
 import { convertCamelCaseToSnakeCase, convertSnakeCaseToCamelCase } from "../service/convertDataService";
-
-interface TitleItem {
-  title: string;
-  category: string;
-  unit: string;
-}
-
-interface ExpenseItem extends TitleItem {
-  id?: number;
-  date: string;
-  createdAt?: string;
-  qty: number;
-  remark: string;
-  totalPrice: number;
-}
-
-interface SummaryExpense {
-  amountItems: string;
-  sumTotalPrice: string;
-  data: ExpenseItem[];
-}
-
+import { SummaryExpense,ExpenseItem } from "../interface/expense.types";
 
 export const getExpenseByDate = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD

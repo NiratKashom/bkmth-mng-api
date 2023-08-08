@@ -4,7 +4,6 @@ import { getSupabaseWithToken } from '../utils/supabase';
 
 export const getTokenMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // console.log('req.headers.authorization', req.headers.authorization)
     const token: string | undefined = req.headers.authorization?.split(" ")[1];
     req.supabase = await getSupabaseWithToken(token || null);
     next();
