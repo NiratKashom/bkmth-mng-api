@@ -1,50 +1,10 @@
 import { Response, Request } from "express";
-import { supabase } from "../utils/supabase";
 import { convertCamelCaseToSnakeCase, convertSnakeCaseToCamelCase } from "../service/convertDataService";
-
-
-interface TitleItem {
-  title: string;
-  category: string;
-  unit: string;
-}
-
-interface StorefrontItem extends TitleItem {
-  id: number;
-  date: string;
-  createdAt: string;
-  qty: number;
-  remark: string;
-  totalPrice: number;
-  isLeftover: boolean;
-  leftoverAmount: number;
-  leftoverTotalPrice: number;
-}
-
-interface LeftoverItem extends TitleItem {
-  storefrontId: number;
-  leftoverAmount: number;
-  leftoverTotalPrice: number;
-}
-
-interface IncomeItem extends TitleItem {
-  storefrontId: number;
-  incomeAmount: number;
-  incomeTotalPrice: number;
-}
-
-interface Summary<T> {
-  amountItems: string;
-  sumTotalPrice: string;
-  data: T[];
-}
-
-type SummarySf = Summary<StorefrontItem>;
-type SummaryLo = Summary<LeftoverItem>;
-type SummaryIc = Summary<IncomeItem>;
+import { IncomeItem, LeftoverItem, StorefrontItem, SummaryIc, SummaryLo, SummarySf } from "../interface/storefront.types"
 
 export const getStorefrontByDate = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
+  const supabase = req.supabase!;
   const date: string = req.params.date;
   try {
     const convertedDate = new Date(date).toISOString();
@@ -136,6 +96,7 @@ export const getStorefrontByDate = async (req: Request, res: Response) => {
 };
 
 export const createStorefrontData = async (req: Request, res: Response) => {
+  const supabase = req.supabase!;
   const body = req.body;
   const convertedBody = convertCamelCaseToSnakeCase(body);
   try {
@@ -158,6 +119,7 @@ export const createStorefrontData = async (req: Request, res: Response) => {
 };
 
 export const deleteStorefrontData = async (req: Request, res: Response) => {
+  const supabase = req.supabase!;
   const id: string = req.params.id;
   // res.json({
   //   message: "DETELED DATA SUCCESSFULLY",
