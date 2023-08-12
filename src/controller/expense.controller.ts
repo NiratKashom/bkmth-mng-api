@@ -1,6 +1,6 @@
 import { Response, Request } from "express";
 import { convertCamelCaseToSnakeCase, convertSnakeCaseToCamelCase } from "../service/convertDataService";
-import { SummaryExpense,ExpenseItem } from "../interface/expense.types";
+import { SummaryExpense, ExpenseItem } from "../interface/expense.types";
 
 export const getExpenseByDate = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
@@ -48,10 +48,12 @@ export const createExpenseData = async (req: Request, res: Response) => {
       .insert(convertedBody)
       .select();
     if (response.status === 400 || response.status === 404) throw response;
+    const convertedData: ExpenseItem[] = convertSnakeCaseToCamelCase(response.data || []);
     res.json({
       message: "CREAT DATA SUCCESSFULLY",
-      data: response.data
+      data: convertedData
     });
+
   } catch (error: any) {
     res.status(500).json({
       statusText: error.statusText,
