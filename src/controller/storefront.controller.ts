@@ -106,7 +106,6 @@ export const createStorefrontData = async (req: Request, res: Response) => {
       .select();
     if (response.status === 400 || response.status === 404) throw response;
     const convertedData: StorefrontItem[] = convertSnakeCaseToCamelCase(response.data || []);
-
     res.json({
       message: "CREAT DATA SUCCESSFULLY",
       data: convertedData
