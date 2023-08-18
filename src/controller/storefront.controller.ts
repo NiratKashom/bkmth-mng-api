@@ -1,6 +1,6 @@
 import { Response, Request } from "express";
-import { convertCamelCaseToSnakeCase, convertSnakeCaseToCamelCase } from "../service/convertDataService";
-import { IncomeItem, LeftoverItem, StorefrontItem, SummaryIc, SummaryLo, SummarySf } from "../interface/storefront.types"
+import { convertCamelCaseToSnakeCase, convertSnakeCaseToCamelCase, summarizeStorfrontData } from "../service/convertDataService";
+import { IncomeItem, LeftoverItem, StorefrontItem, SummaryIc, SummaryLo, SummarySf } from "../interface/storefront.types";
 
 export const getStorefrontByDate = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
@@ -15,76 +15,11 @@ export const getStorefrontByDate = async (req: Request, res: Response) => {
     if (error) throw error;
 
     const storefrontList = convertSnakeCaseToCamelCase(responseData || []);
-    let leftoverList: LeftoverItem[] = [];
-    let incomeList: IncomeItem[] = [];
-    let sfAmountItems: number = 0;
-    let loAmountItems: number = 0;
-    let icAmountItems: number = 0;
-    let sfTotalPrice: number = 0;
-    let loTotalPrice: number = 0;
-    let icTotalPrice: number = 0;
-
-    storefrontList?.forEach(({
-      id: storefrontId,
-      title,
-      category,
-      qty,
-      totalPrice,
-      isLeftover,
-      unit,
-      leftoverAmount,
-      leftoverTotalPrice
-    }: StorefrontItem) => {
-      sfAmountItems++;
-      sfTotalPrice += totalPrice;
-      if (isLeftover) {
-        loAmountItems++;
-        loTotalPrice += leftoverTotalPrice;
-        leftoverList.push({
-          storefrontId,
-          title,
-          category,
-          unit,
-          leftoverAmount,
-          leftoverTotalPrice,
-        });
-      }
-      let incomeItem: IncomeItem = {
-        storefrontId,
-        title,
-        unit,
-        category,
-        incomeAmount: qty - leftoverAmount,
-        incomeTotalPrice: totalPrice - leftoverTotalPrice
-      };
-      icAmountItems++;
-      icTotalPrice += incomeItem.incomeTotalPrice;
-      incomeList.push(incomeItem);
-
-    });
-    const storefrontData: SummarySf = {
-      amountItems: sfAmountItems.toLocaleString(),
-      sumTotalPrice: sfTotalPrice.toLocaleString(),
-      data: storefrontList,
-    };
-    const leftoverData: SummaryLo = {
-      amountItems: loAmountItems.toLocaleString(),
-      sumTotalPrice: loTotalPrice.toLocaleString(),
-      data: leftoverList,
-    };
-    const incomeData: SummaryIc = {
-      amountItems: icAmountItems.toLocaleString(),
-      sumTotalPrice: icTotalPrice.toLocaleString(),
-      data: incomeList,
-    };
+    const summarySfData = summarizeStorfrontData(storefrontList);
 
     res.json({
       message: "GET DATA SUCCESSFULLY",
-      data: {
-        storefrontData,
-        leftoverData,
-        incomeData,
-      }
+      data: summarySfData
     });
 
   } catch (error: any) {
