@@ -1,6 +1,6 @@
 import { Response, Request } from "express";
-import { convertCamelCaseToSnakeCase, convertSnakeCaseToCamelCase } from "../service/convertDataService";
-import { SummaryExpense, ExpenseItem } from "../interface/expense.types";
+import { convertCamelCaseToSnakeCase, convertSnakeCaseToCamelCase, summarizeExpenseData } from "../service/convertDataService";
+import { ExpenseItem } from "../interface/expense.types";
 
 export const getExpenseByDate = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
@@ -16,14 +16,7 @@ export const getExpenseByDate = async (req: Request, res: Response) => {
     if (error) throw error;
 
     const expenseList: ExpenseItem[] = convertSnakeCaseToCamelCase(responseData || []);
-    let amountItems: string = expenseList.length.toLocaleString();
-    let sumTotalPrice: string = expenseList.reduce((sum, item) => sum + item.totalPrice, 0).toLocaleString();
-
-    const expenseData: SummaryExpense = {
-      amountItems,
-      sumTotalPrice,
-      data: expenseList
-    };
+    const expenseData = summarizeExpenseData(expenseList)
 
     res.json({
       message: "GET DATA SUCCESSFULLY",

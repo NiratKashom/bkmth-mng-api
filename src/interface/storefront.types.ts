@@ -7,7 +7,7 @@ export interface TitleItem {
 export interface StorefrontItem extends TitleItem {
   id: number;
   date: string;
-  createdAt: string;
+  createdAt?: string;
   qty: number;
   remark: string;
   totalPrice: number;

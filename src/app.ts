@@ -5,6 +5,7 @@ import cors from 'cors'
 import userRouter from './routes/userRoutes';
 import storefrontRouter from './routes/storefrontRoutes';
 import expenseRouter from './routes/expenseRoutes';  
+import reportRouter from './routes/reportRoutes';  
 
 import {errorHandlerMiddleware,
   notFoundMiddleware} from './middleware/handleError'; 
@@ -26,6 +27,7 @@ app.get('/', (req: Request, res: Response) => {
 app.use('/api/user', userRouter);
 app.use('/api/storefront', storefrontRouter);
 app.use('/api/expense', expenseRouter);
+app.use('/api/report', reportRouter);
 
 app.use(notFoundMiddleware)
 app.use(errorHandlerMiddleware)
