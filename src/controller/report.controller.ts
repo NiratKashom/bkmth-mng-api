@@ -57,13 +57,11 @@ export const getMonthlyReport = async (req: Request, res: Response) => {
     return { startDay: startDate, endDay: endDate };
   }
   const { startDay, endDay } = getStartDayOfMonthAndEndDayOfMonth(date);
-  console.log('formattedStartDate', startDay);
-  console.log('endDAte', endDay);
   try {
 
     let { data: responseData, error } = await supabase
       .from('daily_summary_report')
-      .select('*')
+      .select('date, sum_income,sum_expense,net_income')
       .gte('date', startDay)
       .lte('date', endDay)
       .order('date', { ascending: true });
@@ -72,9 +70,9 @@ export const getMonthlyReport = async (req: Request, res: Response) => {
 
     res.json({
       message: "GET DATA SUCCESSFULLY",
-      data: {
-        monthly: responseData
-      }
+      data:
+        responseData
+
     });
 
   } catch (error: any) {
