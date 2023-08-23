@@ -1,11 +1,10 @@
 import express from 'express';
-import { getDailyReport } from '../controller/report.controller';
+import { getDailyReport,getMonthlyReport } from '../controller/report.controller';
 import { getTokenMiddleware } from '../middleware/token';
 
 const router = express.Router();
 
 router.route('/daily/:date').get(getTokenMiddleware, getDailyReport);
-// router.route('/').post(getTokenMiddleware, createStorefrontData);
-// router.route('/:id').delete(getTokenMiddleware, deleteStorefrontData);
+router.route('/monthly/:date').get(getTokenMiddleware, getMonthlyReport);
 
 export default router
