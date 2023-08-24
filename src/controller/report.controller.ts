@@ -68,11 +68,18 @@ export const getMonthlyReport = async (req: Request, res: Response) => {
 
     if (error) throw error;
 
+    const sumIncome = responseData?.reduce((acc, item) => acc += item.sum_income, 0) || 0;
+    const sumExpense = responseData?.reduce((acc, item) => acc += item.sum_expense, 0)|| 0;;
+    const sumNetIncome = responseData?.reduce((acc, item) => acc += item.net_income, 0)|| 0;;
+
     res.json({
       message: "GET DATA SUCCESSFULLY",
-      data:
-        responseData
-
+      data: {
+        sumIncome: sumIncome.toLocaleString(),
+        sumExpense: sumExpense.toLocaleString(),
+        sumNetIncome: sumNetIncome.toLocaleString(),
+        data: responseData,
+      }
     });
 
   } catch (error: any) {
