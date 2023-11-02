@@ -8,13 +8,20 @@ interface StartAndEndDayOfMonth {
   startDay: string;
   endDay: string;
 }
+
+function getStartDayOfMonthAndEndDayOfMonth(dateString: string): StartAndEndDayOfMonth {
+  const startDate = dayjs(dateString).startOf('month').format('YYYY-MM-DD');
+  const endDate = dayjs(dateString).endOf('month').format('YYYY-MM-DD');
+  return { startDay: startDate, endDay: endDate };
+}
+
 export const getDailyReport = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
   const supabase = req.supabase!;
   const date: string = req.params.date;
   const convertedDate = new Date(date).toISOString();
 
-  console.log('convertedDate', convertedDate);
+  // console.log('convertedDate', convertedDate);
 
   try {
     const queries = [
@@ -78,6 +85,45 @@ export const getMonthlyReport = async (req: Request, res: Response) => {
         sumIncome: sumIncome.toLocaleString(),
         sumExpense: sumExpense.toLocaleString(),
         sumNetIncome: sumNetIncome.toLocaleString(),
+        data: responseData,
+      }
+    });
+
+  } catch (error: any) {
+    res.status(500).json({
+      statusText: error.statusText,
+      message: error.error.message,
+      error
+    });
+  }
+
+};
+
+export const getLeftoverMonthlyReport = async (req: Request, res: Response) => {
+  // date should format: YYYY-MM-DD
+  const supabase = req.supabase!;
+  const date: string = req.params.date;
+
+  const { startDay, endDay } = getStartDayOfMonthAndEndDayOfMonth(date);
+  try {
+
+    let { data: responseData, error } = await supabase
+      .from('daily_summary_report')
+      .select('date, sum_storefront,sum_leftover')
+      .gte('date', startDay)
+      .lte('date', endDay)
+      .order('date', { ascending: true });
+
+    if (error) throw error;
+
+    const sumStorefront = responseData?.reduce((acc, item) => acc += item.sum_storefront, 0) || 0;
+    const sumLeftover = responseData?.reduce((acc, item) => acc += item.sum_leftover, 0)|| 0;;
+
+    res.json({
+      message: "GET DATA SUCCESSFULLY",
+      data: {
+        sumStorefront: sumStorefront.toLocaleString(),
+        sumLeftover: sumLeftover.toLocaleString(),
         data: responseData,
       }
     });
