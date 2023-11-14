@@ -9,6 +9,12 @@ interface StartAndEndDayOfMonth {
   endDay: string;
 }
 
+interface Expense {
+  date: string;
+  category: string;
+  sum: number;
+}
+
 function getStartDayOfMonthAndEndDayOfMonth(dateString: string): StartAndEndDayOfMonth {
   const startDate = dayjs(dateString).startOf('month').format('YYYY-MM-DD');
   const endDate = dayjs(dateString).endOf('month').format('YYYY-MM-DD');
@@ -20,8 +26,6 @@ export const getDailyReport = async (req: Request, res: Response) => {
   const supabase = req.supabase!;
   const date: string = req.params.date;
   const convertedDate = new Date(date).toISOString();
-
-  // console.log('convertedDate', convertedDate);
 
   try {
     const queries = [
@@ -46,7 +50,7 @@ export const getDailyReport = async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(500).json({
       statusText: error.statusText,
-      message: error.error.message,
+      message: error.message,
       error
     });
   }
@@ -58,11 +62,6 @@ export const getMonthlyReport = async (req: Request, res: Response) => {
   const supabase = req.supabase!;
   const date: string = req.params.date;
 
-  function getStartDayOfMonthAndEndDayOfMonth(dateString: string): StartAndEndDayOfMonth {
-    const startDate = dayjs(dateString).startOf('month').format('YYYY-MM-DD');
-    const endDate = dayjs(dateString).endOf('month').format('YYYY-MM-DD');
-    return { startDay: startDate, endDay: endDate };
-  }
   const { startDay, endDay } = getStartDayOfMonthAndEndDayOfMonth(date);
   try {
 
@@ -76,8 +75,8 @@ export const getMonthlyReport = async (req: Request, res: Response) => {
     if (error) throw error;
 
     const sumIncome = responseData?.reduce((acc, item) => acc += item.sum_income, 0) || 0;
-    const sumExpense = responseData?.reduce((acc, item) => acc += item.sum_expense, 0)|| 0;;
-    const sumNetIncome = responseData?.reduce((acc, item) => acc += item.net_income, 0)|| 0;;
+    const sumExpense = responseData?.reduce((acc, item) => acc += item.sum_expense, 0) || 0;;
+    const sumNetIncome = responseData?.reduce((acc, item) => acc += item.net_income, 0) || 0;;
 
     res.json({
       message: "GET DATA SUCCESSFULLY",
@@ -92,7 +91,7 @@ export const getMonthlyReport = async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(500).json({
       statusText: error.statusText,
-      message: error.error.message,
+      message: error.message,
       error
     });
   }
@@ -117,7 +116,7 @@ export const getLeftoverMonthlyReport = async (req: Request, res: Response) => {
     if (error) throw error;
 
     const sumStorefront = responseData?.reduce((acc, item) => acc += item.sum_storefront, 0) || 0;
-    const sumLeftover = responseData?.reduce((acc, item) => acc += item.sum_leftover, 0)|| 0;;
+    const sumLeftover = responseData?.reduce((acc, item) => acc += item.sum_leftover, 0) || 0;;
 
     res.json({
       message: "GET DATA SUCCESSFULLY",
@@ -131,7 +130,57 @@ export const getLeftoverMonthlyReport = async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(500).json({
       statusText: error.statusText,
-      message: error.error.message,
+      message: error.message,
+      error
+    });
+  }
+
+};
+
+export const getExpenseMonthlyReport = async (req: Request, res: Response) => {
+  // date should format: YYYY-MM-DD
+  const supabase = req.supabase!;
+  const date: string = req.params.date;
+
+  const { startDay, endDay } = getStartDayOfMonthAndEndDayOfMonth(date);
+  try {
+
+    let { data: responseData, error } = await supabase
+      .from('daily_sum_expense_by_category')
+      .select('*')
+      .gte('date', startDay)
+      .lte('date', endDay)
+      .order('date', { ascending: true });
+
+    if (error) throw error;
+
+    const expenseData = responseData?.reduce((acc: any[], item: Expense) => {
+      const { date, category, sum } = item;
+      const lastIndex = acc.length - 1;
+
+      if (lastIndex >= 0 && acc[lastIndex].date === date) {
+        acc[lastIndex].expList[category] = sum;
+      } else {
+        acc.push({
+          date,
+          expList: {
+            [category]: sum
+          }
+        });
+      }
+
+      return acc;
+    }, []);
+
+    res.json({
+      message: "GET DATA SUCCESSFULLY",
+      data: expenseData
+    });
+
+  } catch (error: any) {
+    res.status(500).json({
+      statusText: error.statusText,
+      message: error.message,
       error
     });
   }
