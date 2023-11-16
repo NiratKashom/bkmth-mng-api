@@ -115,14 +115,16 @@ export const getLeftoverMonthlyReport = async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    const sumStorefront = responseData?.reduce((acc, item) => acc += item.sum_storefront, 0) || 0;
-    const sumLeftover = responseData?.reduce((acc, item) => acc += item.sum_leftover, 0) || 0;;
-
+    const sumStorefront: number = responseData?.reduce((acc, item) => acc += item.sum_storefront, 0) || 0;
+    const sumLeftover: number = responseData?.reduce((acc, item) => acc += item.sum_leftover, 0) || 0;
+    const leftoverRatio: number = (sumLeftover / sumStorefront) * 100;
+   
     res.json({
       message: "GET DATA SUCCESSFULLY",
       data: {
         sumStorefront: sumStorefront.toLocaleString(),
         sumLeftover: sumLeftover.toLocaleString(),
+        leftoverRatio: leftoverRatio.toFixed(1),
         data: responseData,
       }
     });
@@ -153,6 +155,8 @@ export const getExpenseMonthlyReport = async (req: Request, res: Response) => {
       .order('date', { ascending: true });
 
     if (error) throw error;
+
+    
 
     const expenseData = responseData?.reduce((acc: any[], item: Expense) => {
       const { date, category, sum } = item;
