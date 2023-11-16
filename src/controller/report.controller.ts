@@ -118,7 +118,7 @@ export const getLeftoverMonthlyReport = async (req: Request, res: Response) => {
     const sumStorefront: number = responseData?.reduce((acc, item) => acc += item.sum_storefront, 0) || 0;
     const sumLeftover: number = responseData?.reduce((acc, item) => acc += item.sum_leftover, 0) || 0;
     const leftoverRatio: number = (sumLeftover / sumStorefront) * 100;
-   
+
     res.json({
       message: "GET DATA SUCCESSFULLY",
       data: {
@@ -156,21 +156,61 @@ export const getExpenseMonthlyReport = async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    
-
     const expenseData = responseData?.reduce((acc: any[], item: Expense) => {
       const { date, category, sum } = item;
       const lastIndex = acc.length - 1;
 
       if (lastIndex >= 0 && acc[lastIndex].date === date) {
-        acc[lastIndex].expList[category] = sum;
+        switch (category) {
+          case "วัตถุดิบ":
+            acc[lastIndex].expList.rawMaterial = sum;
+            break;
+          case "บรรจุภัณฑ์":
+            acc[lastIndex].expList.packaging = sum;
+            break;
+          case "บริโภค":
+            acc[lastIndex].expList.consume = sum;
+            break;
+          case "ต้นทุนอื่นๆ":
+            acc[lastIndex].expList.otherCosts = sum;
+            break;
+          case "อื่นๆ":
+            acc[lastIndex].expList.other = sum;
+            break;
+          default:
+            break;
+        }
       } else {
-        acc.push({
+        const eachList = {
           date,
           expList: {
-            [category]: sum
+            rawMaterial: 0,
+            packaging: 0,
+            consume: 0,
+            otherCosts: 0,
+            other: 0
           }
-        });
+        };
+        switch (category) {
+          case "วัตถุดิบ":
+            eachList.expList.rawMaterial = sum;
+            break;
+          case "บรรจุภัณฑ์":
+            eachList.expList.packaging = sum;
+            break;
+          case "บริโภค":
+            eachList.expList.consume = sum;
+            break;
+          case "ต้นทุนอื่นๆ":
+            eachList.expList.otherCosts = sum;
+            break;
+          case "อื่นๆ":
+            eachList.expList.other = sum;
+            break;
+          default:
+            break;
+        }
+        acc.push(eachList);
       }
 
       return acc;
