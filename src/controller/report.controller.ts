@@ -15,11 +15,62 @@ interface Expense {
   sum: number;
 }
 
-function getStartDayOfMonthAndEndDayOfMonth(dateString: string): StartAndEndDayOfMonth {
+interface SummarizeByCategory {
+  sum: number;
+  ratio?: number;
+};
+
+interface SummarizeExpense {
+  sumExpense: number;
+  sumRawMaterial: SummarizeByCategory;
+  sumPackaging: SummarizeByCategory;
+  sumConsume: SummarizeByCategory;
+  sumOtherCosts: SummarizeByCategory;
+  sumOther: SummarizeByCategory;
+};
+
+const getStartDayOfMonthAndEndDayOfMonth = (dateString: string): StartAndEndDayOfMonth => {
   const startDate = dayjs(dateString).startOf('month').format('YYYY-MM-DD');
   const endDate = dayjs(dateString).endOf('month').format('YYYY-MM-DD');
   return { startDay: startDate, endDay: endDate };
 }
+
+const updateExpense = (acc: any[], lastIndex: number, category: string, sum: number, summarizeExp: SummarizeExpense) => {
+  switch (category) {
+    case "วัตถุดิบ":
+      acc[lastIndex].expList.rawMaterial = sum;
+      summarizeExp.sumRawMaterial.sum += sum;
+      summarizeExp.sumExpense += sum;
+      break;
+    case "บรรจุภัณฑ์":
+      acc[lastIndex].expList.packaging = sum;
+      summarizeExp.sumPackaging.sum += sum;
+      summarizeExp.sumExpense += sum;
+
+      break;
+    case "บริโภค":
+      acc[lastIndex].expList.consume = sum;
+      summarizeExp.sumConsume.sum += sum;
+      summarizeExp.sumExpense += sum;
+      break;
+    case "ต้นทุนอื่นๆ":
+      acc[lastIndex].expList.otherCosts = sum;
+      summarizeExp.sumOtherCosts.sum += sum;
+      summarizeExp.sumExpense += sum;
+      break;
+    case "อื่นๆ":
+      acc[lastIndex].expList.other = sum;
+      summarizeExp.sumOther.sum += sum;
+      summarizeExp.sumExpense += sum;
+      break;
+    default:
+      break;
+  }
+};
+
+const calcRatio = (num: number, total: number): number => {
+  return Number(((num / total) * 100).toFixed(1));
+};
 
 export const getDailyReport = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
@@ -143,10 +194,9 @@ export const getExpenseMonthlyReport = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
   const supabase = req.supabase!;
   const date: string = req.params.date;
-
   const { startDay, endDay } = getStartDayOfMonthAndEndDayOfMonth(date);
+  
   try {
-
     let { data: responseData, error } = await supabase
       .from('daily_sum_expense_by_category')
       .select('*')
@@ -156,29 +206,38 @@ export const getExpenseMonthlyReport = async (req: Request, res: Response) => {
 
     if (error) throw error;
 
-    const expenseData = responseData?.reduce((acc: any[], item: Expense) => {
+    let summarizeExpenseData: SummarizeExpense = {
+      sumExpense: 0,
+      sumRawMaterial: {
+        sum: 0
+      },
+      sumPackaging: {
+        sum: 0
+      },
+      sumConsume: {
+        sum: 0
+      },
+      sumOtherCosts: {
+        sum: 0
+      },
+      sumOther: {
+        sum: 0
+      },
+    };
+
+    const expenseData = responseData?.reduce((acc: any[], item: Expense, idx: number) => {
       const { date, category, sum } = item;
       const lastIndex = acc.length - 1;
 
       if (lastIndex >= 0 && acc[lastIndex].date === date) {
-        switch (category) {
-          case "วัตถุดิบ":
-            acc[lastIndex].expList.rawMaterial = sum;
-            break;
-          case "บรรจุภัณฑ์":
-            acc[lastIndex].expList.packaging = sum;
-            break;
-          case "บริโภค":
-            acc[lastIndex].expList.consume = sum;
-            break;
-          case "ต้นทุนอื่นๆ":
-            acc[lastIndex].expList.otherCosts = sum;
-            break;
-          case "อื่นๆ":
-            acc[lastIndex].expList.other = sum;
-            break;
-          default:
-            break;
+        updateExpense(acc, lastIndex, category, sum, summarizeExpenseData);
+        if (responseData && idx === responseData.length - 1) {
+          const { sumExpense, sumRawMaterial, sumPackaging, sumConsume, sumOtherCosts, sumOther } = summarizeExpenseData;
+          sumRawMaterial.ratio = calcRatio(sumRawMaterial.sum, sumExpense);
+          sumPackaging.ratio = calcRatio(sumPackaging.sum, sumExpense);
+          sumConsume.ratio = calcRatio(sumConsume.sum, sumExpense);
+          sumOtherCosts.ratio = calcRatio(sumOtherCosts.sum, sumExpense);
+          sumOther.ratio = calcRatio(sumOther.sum, sumExpense);
         }
       } else {
         const eachList = {
@@ -191,34 +250,15 @@ export const getExpenseMonthlyReport = async (req: Request, res: Response) => {
             other: 0
           }
         };
-        switch (category) {
-          case "วัตถุดิบ":
-            eachList.expList.rawMaterial = sum;
-            break;
-          case "บรรจุภัณฑ์":
-            eachList.expList.packaging = sum;
-            break;
-          case "บริโภค":
-            eachList.expList.consume = sum;
-            break;
-          case "ต้นทุนอื่นๆ":
-            eachList.expList.otherCosts = sum;
-            break;
-          case "อื่นๆ":
-            eachList.expList.other = sum;
-            break;
-          default:
-            break;
-        }
+        updateExpense([eachList], 0, category, sum, summarizeExpenseData);
         acc.push(eachList);
       }
-
       return acc;
     }, []);
 
     res.json({
       message: "GET DATA SUCCESSFULLY",
-      data: expenseData
+      data: { expenseData, summarizeExpenseData }
     });
 
   } catch (error: any) {
