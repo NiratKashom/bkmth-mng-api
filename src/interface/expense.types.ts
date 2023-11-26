@@ -5,7 +5,7 @@ export interface ExpenseItem extends TitleItem {
   date: string;
   createdAt?: string;
   qty: number;
-  remark: string;
+  remark?: string;
   totalPrice: number;
 }
 

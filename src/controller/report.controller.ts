@@ -3,7 +3,7 @@ import { convertSnakeCaseToCamelCase, summarizeExpenseData, summarizeIncomeData 
 import { getStartDayOfMonthAndEndDayOfMonth, updateExpense, calcRatio } from "../service/extractDataForReportService";
 import { StorefrontItem } from "../interface/storefront.types";
 import { ExpenseItem } from "../interface/expense.types";
-import { Expense,SummarizeExpense } from "../interface/report.types";
+import { Expense, SummarizeExpense } from "../interface/report.types";
 
 export const getDailyReport = async (req: Request, res: Response) => {
   // date should format: YYYY-MM-DD
@@ -22,6 +22,8 @@ export const getDailyReport = async (req: Request, res: Response) => {
     const expenseList: ExpenseItem[] = convertSnakeCaseToCamelCase(expenseData.data || []);
     const summaryIncomeData = summarizeIncomeData(storefrontList);
     const summaryExpense = summarizeExpenseData(expenseList);
+
+    console.log('expenseData', expenseData)
 
     res.json({
       message: "GET DATA SUCCESSFULLY",
@@ -128,7 +130,7 @@ export const getExpenseMonthlyReport = async (req: Request, res: Response) => {
   const supabase = req.supabase!;
   const date: string = req.params.date;
   const { startDay, endDay } = getStartDayOfMonthAndEndDayOfMonth(date);
-  
+
   try {
     let { data: responseData, error } = await supabase
       .from('daily_sum_expense_by_category')
@@ -192,6 +194,78 @@ export const getExpenseMonthlyReport = async (req: Request, res: Response) => {
     res.json({
       message: "GET DATA SUCCESSFULLY",
       data: { expenseData, summarizeExpenseData }
+    });
+
+  } catch (error: any) {
+    res.status(500).json({
+      statusText: error.statusText,
+      message: error.message,
+      error
+    });
+  }
+
+};
+
+export const getExpenseDailyReport = async (req: Request, res: Response) => {
+  // date should format: YYYY-MM-DD
+  const supabase = req.supabase!;
+  const date: string = req.params.date;
+  const convertedDate = new Date(date).toISOString();
+
+  try {
+    let { data: responseData, error } = await supabase
+      .from('expense')
+      .select('date,category,title,qty,unit,total_price')
+      .eq('date', convertedDate)
+      .order('total_price', { ascending: false });
+
+    if (error) throw error;
+
+    let summarizeExpenseData: SummarizeExpense = {
+      sumExpense: 0,
+      sumRawMaterial: {
+        sum: 0
+      },
+      sumPackaging: {
+        sum: 0
+      },
+      sumConsume: {
+        sum: 0
+      },
+      sumOtherCosts: {
+        sum: 0
+      },
+      sumOther: {
+        sum: 0
+      }, 
+    };
+
+    const convertedExpList: ExpenseItem[] = convertSnakeCaseToCamelCase(responseData || []);
+    convertedExpList.forEach((item: ExpenseItem) => {
+      const { category, totalPrice = 0} = item;
+      switch (category) {
+        case "วัตถุดิบ":
+          summarizeExpenseData.sumRawMaterial.sum += totalPrice;
+          break;
+        case "บรรจุภัณฑ์":
+          summarizeExpenseData.sumPackaging.sum += totalPrice;
+          break;
+        case "บริโภค":
+          summarizeExpenseData.sumConsume.sum += totalPrice;
+          break;
+        case "ต้นทุนอื่นๆ":
+          summarizeExpenseData.sumOtherCosts.sum += totalPrice;
+          break;
+        case "อื่นๆ":
+          summarizeExpenseData.sumOther.sum += totalPrice;
+          break;
+      }
+      summarizeExpenseData.sumExpense += totalPrice;
+    });
+
+    res.json({
+      message: "GET DATA SUCCESSFULLY",
+      data: { expenseList: convertedExpList, summarizeExpense: summarizeExpenseData }
     });
 
   } catch (error: any) {
