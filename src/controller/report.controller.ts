@@ -23,7 +23,7 @@ export const getDailyReport = async (req: Request, res: Response) => {
     const summaryIncomeData = summarizeIncomeData(storefrontList);
     const summaryExpense = summarizeExpenseData(expenseList);
 
-    console.log('expenseData', expenseData)
+    console.log('expenseData', expenseData);
 
     res.json({
       message: "GET DATA SUCCESSFULLY",
@@ -130,6 +130,7 @@ export const getExpenseMonthlyReport = async (req: Request, res: Response) => {
   const supabase = req.supabase!;
   const date: string = req.params.date;
   const { startDay, endDay } = getStartDayOfMonthAndEndDayOfMonth(date);
+  const [year, month]: string[] = date.split('-');
 
   try {
     let { data: responseData, error } = await supabase
@@ -139,7 +140,10 @@ export const getExpenseMonthlyReport = async (req: Request, res: Response) => {
       .lte('date', endDay)
       .order('date', { ascending: true });
 
-    if (error) throw error;
+    let { data: expByTitle, error: fnError } = await supabase
+      .rpc('get_expense_summary_by_title', { p_month: Number(month), p_year: Number(year) });
+
+    if (error || fnError) throw error;
 
     let summarizeExpenseData: SummarizeExpense = {
       sumExpense: 0,
@@ -193,7 +197,7 @@ export const getExpenseMonthlyReport = async (req: Request, res: Response) => {
 
     res.json({
       message: "GET DATA SUCCESSFULLY",
-      data: { expenseData, summarizeExpenseData }
+      data: { expenseData, summarizeExpenseData, expByTitle }
     });
 
   } catch (error: any) {
@@ -237,12 +241,12 @@ export const getExpenseDailyReport = async (req: Request, res: Response) => {
       },
       sumOther: {
         sum: 0
-      }, 
+      },
     };
 
     const convertedExpList: ExpenseItem[] = convertSnakeCaseToCamelCase(responseData || []);
     convertedExpList.forEach((item: ExpenseItem) => {
-      const { category, totalPrice = 0} = item;
+      const { category, totalPrice = 0 } = item;
       switch (category) {
         case "วัตถุดิบ":
           summarizeExpenseData.sumRawMaterial.sum += totalPrice;
